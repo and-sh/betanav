@@ -41,17 +41,17 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_DUAL_GYRO
+// #define USE_DUAL_GYRO
 
-#define USE_IMU_MPU6000
-#define IMU_MPU6000_ALIGN       CW180_DEG_FLIP
-#define MPU6000_CS_PIN          PB2
-#define MPU6000_SPI_BUS         BUS_SPI1
+#define USE_IMU_ICM20689
+#define IMU_ICM20689_ALIGN     CW0_DEG
+#define ICM20689_CS_PIN        PB2
+#define ICM20689_SPI_BUS       BUS_SPI1
 
-#define USE_IMU_MPU6500
-#define IMU_MPU6500_ALIGN       CW90_DEG
-#define MPU6500_CS_PIN          PC15
-#define MPU6500_SPI_BUS         BUS_SPI1
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN     CW0_DEG
+#define ICM42605_CS_PIN        PB2
+#define ICM42605_SPI_BUS       BUS_SPI1
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C

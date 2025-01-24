@@ -137,7 +137,9 @@ bool adjustMulticopterAltitudeFromRCInput(void)
         return true;
     }
     else {
-        const int16_t rcThrottleAdjustment = applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
+        
+        //const int16_t rcThrottleAdjustment = applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
+        const int16_t rcThrottleAdjustment = rcCommand[THROTTLE] - altHoldThrottleRCZero;
 
         if (rcThrottleAdjustment) {
             // set velocity proportional to stick movement
@@ -179,7 +181,8 @@ void setupMulticopterAltitudeController(void)
     } else if (throttleType == MC_ALT_HOLD_HOVER) {
         altHoldThrottleRCZero = currentBatteryProfile->nav.mc.hover_throttle;
     } else {
-        altHoldThrottleRCZero = rcLookupThrottleMid();
+        altHoldThrottleRCZero = 1200;    //rcLookupThrottleMid();
+   //
     }
 
     // Make sure we are able to satisfy the deadband
@@ -569,37 +572,36 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float setpointXY = calc_length_pythagorean_2D(setpointX, setpointY);
 
     // Calculate velocity error
-    const float velErrorX = setpointX - measurementX;
-    const float velErrorY = setpointY - measurementY;
+    //const float velErrorX = setpointX - measurementX;
+    //const float velErrorY = setpointY - measurementY;
 
     // Calculate XY-acceleration limit according to velocity error limit
-    float accelLimitX, accelLimitY;
-    const float velErrorMagnitude = calc_length_pythagorean_2D(velErrorX, velErrorY);
+    //float accelLimitX, accelLimitY;
+    //const float velErrorMagnitude = calc_length_pythagorean_2D(velErrorX, velErrorY);
 
-    if (velErrorMagnitude > 0.1f) {
-        accelLimitX = maxAccelLimit / velErrorMagnitude * fabsf(velErrorX);
-        accelLimitY = maxAccelLimit / velErrorMagnitude * fabsf(velErrorY);
-    } else {
-        accelLimitX = maxAccelLimit / 1.414213f;
-        accelLimitY = accelLimitX;
-    }
+    //if (velErrorMagnitude > 0.1f) {
+    //    accelLimitX = maxAccelLimit / velErrorMagnitude * fabsf(velErrorX);
+    //    accelLimitY = maxAccelLimit / velErrorMagnitude * fabsf(velErrorY);
+    //} else {
+    //    accelLimitX = maxAccelLimit / 1.414213f;
+    //    accelLimitY = accelLimitX;
+    //}
 
     // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
 
-    float maxAccelChange = US2S(deltaMicros) * MC_POS_CONTROL_JERK_LIMIT_CMSSS;
+    //float maxAccelChange = US2S(deltaMicros) * MC_POS_CONTROL_JERK_LIMIT_CMSSS;
     //When braking, raise jerk limit even if we are not boosting acceleration
-#ifdef USE_MR_BRAKING_MODE
-    if (STATE(NAV_CRUISE_BRAKING)) {
-        maxAccelChange = maxAccelChange * 2;
-    }
-#endif
+//#ifdef USE_MR_BRAKING_MODE
+//    if (STATE(NAV_CRUISE_BRAKING)) {
+//        maxAccelChange = maxAccelChange * 2;
+//    }
+//#endif
 
-    const float accelLimitXMin = constrainf(lastAccelTargetX - maxAccelChange, -accelLimitX, +accelLimitX);
-    const float accelLimitXMax = constrainf(lastAccelTargetX + maxAccelChange, -accelLimitX, +accelLimitX);
-    const float accelLimitYMin = constrainf(lastAccelTargetY - maxAccelChange, -accelLimitY, +accelLimitY);
-    const float accelLimitYMax = constrainf(lastAccelTargetY + maxAccelChange, -accelLimitY, +accelLimitY);
-
+    const float accelLimitXMin = -1.0e10f;
+    const float accelLimitXMax = 1.0e10f;
+    const float accelLimitYMin = -1.0e10f;
+    const float accelLimitYMax = 1.0e10f;
     // TODO: Verify if we need jerk limiting after all
 
     /*
