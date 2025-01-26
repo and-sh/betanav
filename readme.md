@@ -1,4 +1,4 @@
-Fixing some issues. Currenly work on 8 rc3 release
+Fixing some issues. Currenly work on 8.0.0 release
 
 Fixed
 
