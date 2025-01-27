@@ -10,6 +10,8 @@ iNavFlight#10576
 
 iNavFlight#10520
 
+https://github.com/iNavFlight/inav/issues/10650
+
 Planed
 
 iNavFlight#10487
