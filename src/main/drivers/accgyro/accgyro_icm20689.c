@@ -59,14 +59,14 @@
 
 #define ICM45600_RA_GYRO_CONFIG0                    0x1c
 #define ICM45600_GYRO_CONFIG0_M                     0
-#define ICM45600_GYRO_CONFIG0_S                     0b00100011 //6.4kHz , 1000dps
-#define ICM45600_GYRO_SCALE                         1.0f / 32.8f     // dps/lsb scalefactor
+#define ICM45600_GYRO_CONFIG0_S                     0b01000011 //6.4kHz , 250dps
+#define ICM45600_GYRO_SCALE                         1.0f / 131.0f     // dps/lsb scalefactor
 
 
 #define ICM45600_RA_ACCEL_CONFIG0                   0x1b
 #define ICM45600_ACCEL_CONFIG0_M                    0b10000000
-#define ICM45600_ACCEL_CONFIG0_S                    0b00100011 //6.4KHz,8G
-#define ICM45600_ACCEL_1G                            512 * 8    // 8=8g  4=16g
+#define ICM45600_ACCEL_CONFIG0_S                    0b00110011 //6.4KHz,4G
+#define ICM45600_ACCEL_1G                            512 * 16    // 8=8g  4=16g
 
 
 #define ICM45600_RA_GYRO_DATA_X1                    0x06
@@ -99,7 +99,7 @@
 //sys2
 #define ICM45600_RA_ACCEL_UI_LPFBW_SEL             0x83
 #define ICM45600_ACCEL_UI_LPFBW_SEL_M              0b11111000
-#define ICM45600_ACCEL_UI_LPFBW_SEL_S              0b100
+#define ICM45600_ACCEL_UI_LPFBW_SEL_S              0b110    //odr/128 =50Hz
 
 #define ICM45600_RA_ACCEL_SRC_CTRL             0x7B
 #define ICM45600_ACCEL_SRC_CTRL_M              0b11111100
@@ -112,7 +112,7 @@
 
 #define ICM45600_RA_FS_SEL_AUX1                0x55
 #define ICM45600_RA_FS_SEL_AUX1_M              0b01111111
-#define ICM45600_RA_FS_SEL_AUX1_S              0b0  //4000dps & 32G
+#define ICM45600_RA_FS_SEL_AUX1_S              0b00001001  //2000dps & 16G
 
 //sys1
 #define ICM45600_RA_GYRO_OIS_LPF1BW_SEL              0xAB
@@ -123,7 +123,7 @@
 //sys2
 #define ICM45600_RA_ACCEL_OIS_LPF1BW_SEL              0x82
 #define ICM45600_ACCEL_OIS_LPF1BW_SEL_M            0b11111000
-#define ICM45600_ACCEL_OIS_LPF1BW_SEL_S            0b100
+#define ICM45600_ACCEL_OIS_LPF1BW_SEL_S            0b110    // 65Hz    
 
 
 // accumulator for acc
@@ -181,7 +181,7 @@ bool icm20689AccDetect(accDev_t *acc)
 
 static const gyroFilterAndRateConfig_t icm45600GyroConfigs[] = {
     /*                            DLPF  ODR */
-    { GYRO_LPF_256HZ,   4000,   { 1,    1  } } /* 200 Hz LPF */
+    { GYRO_LPF_256HZ,   6400,   { 1,    1  } } /* 200 Hz LPF */
     
 };
 
@@ -189,7 +189,7 @@ static void icm45600AccAndGyroInit(gyroDev_t *gyro)
 {
     busDevice_t * dev = gyro->busDev;
     const gyroFilterAndRateConfig_t * config = &icm45600GyroConfigs[0];
-    gyro->sampleRateIntervalUs = 1000000 / 4000;
+    gyro->sampleRateIntervalUs = 1000000 / 6400;
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
