@@ -1657,7 +1657,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->axisPID_F[i] = axisPID_F[i];
         blackboxCurrent->gyroADC[i] = lrintf(gyro.gyroADCf[i]);
         blackboxCurrent->accADC[i] = lrintf(acc.accADCf[i] * acc.dev.acc_1G);
-        blackboxCurrent->gyroRaw[i] = lrintf(gyro.gyroRaw[i]);
+        blackboxCurrent->gyroRaw[i] = lrintf(gyro.gyroRaw[i]*60.0);
 
 #ifdef USE_DYNAMIC_FILTERS
         for (uint8_t i = 0; i < DYN_NOTCH_PEAK_COUNT ; i++) {

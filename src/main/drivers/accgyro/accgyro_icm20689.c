@@ -59,14 +59,14 @@
 
 #define ICM45600_RA_GYRO_CONFIG0                    0x1c
 #define ICM45600_GYRO_CONFIG0_M                     0
-#define ICM45600_GYRO_CONFIG0_S                     0b01000011 //6.4kHz , 250dps
-#define ICM45600_GYRO_SCALE                         1.0f / 131.0f     // dps/lsb scalefactor
+#define ICM45600_GYRO_CONFIG0_S                     0b00010011 //6.4kHz , 4000dps
+#define ICM45600_GYRO_SCALE                         1.0f / 8.2f     // dps/lsb scalefactor
 
 
 #define ICM45600_RA_ACCEL_CONFIG0                   0x1b
 #define ICM45600_ACCEL_CONFIG0_M                    0b10000000
-#define ICM45600_ACCEL_CONFIG0_S                    0b00110011 //6.4KHz,4G
-#define ICM45600_ACCEL_1G                            512 * 16    // 8=8g  4=16g
+#define ICM45600_ACCEL_CONFIG0_S                    0b00010011 //6.4KHz,32G
+#define ICM45600_ACCEL_1G                            512 * 2    // 8=8g  4=16g
 
 
 #define ICM45600_RA_GYRO_DATA_X1                    0x06
@@ -125,8 +125,32 @@
 #define ICM45600_ACCEL_OIS_LPF1BW_SEL_M            0b11111000
 #define ICM45600_ACCEL_OIS_LPF1BW_SEL_S            0b110    // 65Hz    
 
+// fifo
+#define ICM45600_RA_FIFO_COUNT_0            0x12
+#define ICM45600_RA_FIFO_COUNT_1            0x13
+#define ICM45600_RA_FIFO_DATA               0x14
 
-// accumulator for acc
+#define ICM45600_RA_FIFO_CONFIG0                 0x1d
+#define ICM45600_FIFO_CONFIG0_M               0b0
+#define ICM45600_FIFO_CONFIG0_S               0b01000111 // fifo mode,fifo depth
+
+#define ICM45600_RA_FIFO_CONFIG2                 0x20
+#define ICM45600_FIFO_CONFIG2_M               0b01111111
+#define ICM45600_FIFO_CONFIG2_S               0b10000000 // fifo flush
+
+#define ICM45600_RA_FIFO_CONFIG4                 0x22
+#define ICM45600_FIFO_CONFIG4_M               0b11000000
+#define ICM45600_FIFO_CONFIG4_S               0b00000000 // compression, ts 
+
+#define ICM45600_RA_FIFO_CONFIG3                 0x21
+#define ICM45600_FIFO_CONFIG3_M               0b11000000
+#define ICM45600_FIFO_CONFIG3_S               0b00001110 // accel gyro hires 
+
+#define ICM45600_FIFO_CONFIG3_EN_M               0b11111110
+#define ICM45600_FIFO_CONFIG3_EN_S               0b00000001 // fifo En
+
+
+// accumulator for accEnable
 static float ACC_A[3];
 static int16_t ACC_cntr;
 
@@ -153,9 +177,9 @@ if(ACC_cntr!=0)
     ACC_A[1]=0;
     ACC_A[2]=0;
 }else {
-    acc->ADCRaw[X] = 0;
-    acc->ADCRaw[Y] = 0;
-    acc->ADCRaw[Z] = 4096;
+    acc->ADCRaw[X] = 0.0;
+    acc->ADCRaw[Y] = 0.0;
+    acc->ADCRaw[Z] = 1024.0;
 }
     return true;
 }
@@ -189,7 +213,7 @@ static void icm45600AccAndGyroInit(gyroDev_t *gyro)
 {
     busDevice_t * dev = gyro->busDev;
     const gyroFilterAndRateConfig_t * config = &icm45600GyroConfigs[0];
-    gyro->sampleRateIntervalUs = 1000000 / 6400;
+    gyro->sampleRateIntervalUs = 1000000 / 3200;
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
@@ -243,6 +267,38 @@ static void icm45600AccAndGyroInit(gyroDev_t *gyro)
     busWrite(dev, ICM45600_RA_PWR_MGMT0, intfConfig1Value);
     delay(15);
 
+//fifo
+
+//=fifo flush
+   busRead(dev, ICM45600_RA_FIFO_CONFIG2, &intfConfig1Value);
+   intfConfig1Value &= ICM45600_FIFO_CONFIG2_M;
+   intfConfig1Value |= ICM45600_FIFO_CONFIG2_S;
+   busWrite(dev, ICM45600_RA_FIFO_CONFIG2, intfConfig1Value);
+   delay(15);
+
+   busRead(dev, ICM45600_RA_FIFO_CONFIG4, &intfConfig1Value);
+   intfConfig1Value &= ICM45600_FIFO_CONFIG4_M;
+   intfConfig1Value |= ICM45600_FIFO_CONFIG4_S;
+   busWrite(dev, ICM45600_RA_FIFO_CONFIG4, intfConfig1Value);
+   delay(15);
+
+   busRead(dev, ICM45600_RA_FIFO_CONFIG3, &intfConfig1Value);
+   intfConfig1Value &= ICM45600_FIFO_CONFIG3_M;
+   intfConfig1Value |= ICM45600_FIFO_CONFIG3_S;
+   busWrite(dev, ICM45600_RA_FIFO_CONFIG3, intfConfig1Value);
+   delay(15);
+
+   busRead(dev, ICM45600_RA_FIFO_CONFIG0, &intfConfig1Value);
+   intfConfig1Value &= ICM45600_FIFO_CONFIG0_M;
+   intfConfig1Value |= ICM45600_FIFO_CONFIG0_S;
+   busWrite(dev, ICM45600_RA_FIFO_CONFIG0, intfConfig1Value);
+   delay(15);
+
+   busRead(dev, ICM45600_RA_FIFO_CONFIG3, &intfConfig1Value);
+   intfConfig1Value &= ICM45600_FIFO_CONFIG3_EN_M;
+   intfConfig1Value |= ICM45600_FIFO_CONFIG3_EN_S;
+   busWrite(dev, ICM45600_RA_FIFO_CONFIG3, intfConfig1Value);
+   delay(15);
 
 
 
@@ -282,20 +338,49 @@ static bool icm45600DeviceDetect(busDevice_t * dev)
 
 static bool icm45600GyroRead(gyroDev_t *gyro)
 {
-    uint8_t data[12];
+    uint8_t data[20],count[2];
+    int16_t gyro_cntr,i;
+    
+    float gyro_a[3];
+    gyro_a[0]=0;
+    gyro_a[1]=0;
+    gyro_a[2]=0;
 
-    const bool ack = busReadBuf(gyro->busDev, ICM45600_RA_ACCEL_DATA_X1, data, 12);
+    bool ack;
+
+    ack = busReadBuf(gyro->busDev, ICM45600_RA_FIFO_COUNT_0, count, 2);
     if (!ack) {
         return false;
     }
-    gyro->gyroADCRaw[X] = (float) int16_val_little_endian(data, 3);
-    gyro->gyroADCRaw[Y] = (float) int16_val_little_endian(data, 4);
-    gyro->gyroADCRaw[Z] = (float) int16_val_little_endian(data, 5);
+    gyro_cntr=int16_val_little_endian(count, 0);
+    if(gyro_cntr == 0)
+    {
+        return false;
+    }
+
+    for(i=0;i<gyro_cntr;i++)
+    {
+    ack = busReadBuf(gyro->busDev, ICM45600_RA_FIFO_DATA, data, 20);
+    if (!ack) {
+        return false;
+    }
+        if(data[0]==0b01111000)
+        {
+        gyro_a[0]+= (float) int16_val_big_endian(data, 4);
+        gyro_a[1]+= (float) int16_val_big_endian(data, 5);
+        gyro_a[2]+= (float) int16_val_big_endian(data, 6);
  
-    ACC_A[0]+=(float) int16_val_little_endian(data, 0);
-    ACC_A[1]+=(float) int16_val_little_endian(data, 1);
-    ACC_A[2]+=(float) int16_val_little_endian(data, 2);
-    ACC_cntr++;
+        ACC_A[0]+=(float) int16_val_big_endian(data, 1);
+        ACC_A[1]+=(float) int16_val_big_endian(data, 2);
+        ACC_A[2]+=(float) int16_val_big_endian(data, 3);
+        ACC_cntr++;
+        }
+    }
+
+    gyro->gyroADCRaw[X] = gyro_a[0]/gyro_cntr;
+    gyro->gyroADCRaw[Y] = gyro_a[1]/gyro_cntr;
+    gyro->gyroADCRaw[Z] = gyro_a[2]/gyro_cntr;
+
     return true;
 }
 
