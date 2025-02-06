@@ -851,7 +851,8 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
     const timeDelta_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
 
     /* Update actual hardware readings */
-    gyroUpdate();
+    //gyroUpdate();
+    IMUUpdate();
 
 #ifdef USE_OPFLOW
     if (sensors(SENSOR_OPFLOW)) {
@@ -912,7 +913,9 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 #if defined(SITL_BUILD)
     if (ARMING_FLAG(SIMULATOR_MODE_HITL) || lockMainPID()) {
 #endif
-
+   
+    // gyro Update
+    gyroUpdate();
     gyroFilter();
 
     imuUpdateAccelerometer();

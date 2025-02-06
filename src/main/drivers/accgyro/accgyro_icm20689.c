@@ -44,6 +44,8 @@
 #define ICM45600_WHO_AM_I_CONST                 0xE9
 
 #define ICM45600_RA_PWR_MGMT0                       0x10
+#define ICM45600_RA_REG_MISC2                       0x7f
+
 
 #define ICM45600_PWR_MGMT0_M                        0b11110000
 #define ICM45600_PWR_MGMT0_S                        0b00001111 // acc&gyro LN
@@ -59,14 +61,14 @@
 
 #define ICM45600_RA_GYRO_CONFIG0                    0x1c
 #define ICM45600_GYRO_CONFIG0_M                     0
-#define ICM45600_GYRO_CONFIG0_S                     0b01000011 //6.4kHz , 250dps
-#define ICM45600_GYRO_SCALE                         1.0f / 131.0f     // dps/lsb scalefactor
+#define ICM45600_GYRO_CONFIG0_S                     0b00100011 //6.4kHz , 1000dps
+#define ICM45600_GYRO_SCALE                         1.0f / 32.8f     // dps/lsb scalefactor
 
 
 #define ICM45600_RA_ACCEL_CONFIG0                   0x1b
 #define ICM45600_ACCEL_CONFIG0_M                    0b10000000
-#define ICM45600_ACCEL_CONFIG0_S                    0b00110011 //6.4KHz,4G
-#define ICM45600_ACCEL_1G                            512 * 16    // 8=8g  4=16g
+#define ICM45600_ACCEL_CONFIG0_S                    0b00100011  //6.4KHz,8G
+#define ICM45600_ACCEL_1G                            512 * 8    // 8=8g  4=16g
 
 
 #define ICM45600_RA_GYRO_DATA_X1                    0x06
@@ -90,7 +92,7 @@
 //sys1
 #define ICM45600_RA_GYRO_UI_LPFBW_SEL              0xAC
 #define ICM45600_GYRO_UI_LPFBW_SEL_M            0b11111000
-#define ICM45600_GYRO_UI_LPFBW_SEL_S            0b100       //odr/32=200Hz
+#define ICM45600_GYRO_UI_LPFBW_SEL_S            0b00000100       //odr/32=200Hz
 
 #define ICM45600_RA_GYRO_SRC_CTRL                  0xA6
 #define ICM45600_GYRO_GYRO_SRC_CTRL_M            0b10011111
@@ -99,7 +101,7 @@
 //sys2
 #define ICM45600_RA_ACCEL_UI_LPFBW_SEL             0x83
 #define ICM45600_ACCEL_UI_LPFBW_SEL_M              0b11111000
-#define ICM45600_ACCEL_UI_LPFBW_SEL_S              0b110    //odr/128 =50Hz
+#define ICM45600_ACCEL_UI_LPFBW_SEL_S              0b00000110    //odr/128 =50Hz
 
 #define ICM45600_RA_ACCEL_SRC_CTRL             0x7B
 #define ICM45600_ACCEL_SRC_CTRL_M              0b11111100
@@ -117,18 +119,22 @@
 //sys1
 #define ICM45600_RA_GYRO_OIS_LPF1BW_SEL              0xAB
 #define ICM45600_GYRO_OIS_LPF1BW_SEL_M            0b11111000
-#define ICM45600_GYRO_OIS_LPF1BW_SEL_S            0b100 // 285Hz
+#define ICM45600_GYRO_OIS_LPF1BW_SEL_S            0b00000100 // 285Hz
 
 
 //sys2
 #define ICM45600_RA_ACCEL_OIS_LPF1BW_SEL              0x82
 #define ICM45600_ACCEL_OIS_LPF1BW_SEL_M            0b11111000
-#define ICM45600_ACCEL_OIS_LPF1BW_SEL_S            0b110    // 65Hz    
+#define ICM45600_ACCEL_OIS_LPF1BW_SEL_S            0b00000110    // 65Hz    
 
 
 // accumulator for acc
-static float ACC_A[3];
-static int16_t ACC_cntr;
+STATIC_FASTRAM float ACC_A[3];
+STATIC_FASTRAM int16_t ACC_cntr;
+
+STATIC_FASTRAM float GYRO_A[3];
+STATIC_FASTRAM int16_t GYRO_cntr;
+
 
 static void icm45600AccInit(accDev_t *acc)
 {
@@ -141,13 +147,16 @@ static void icm45600AccInit(accDev_t *acc)
     
 }
 
-static bool icm45600AccRead(accDev_t *acc)
+static bool FAST_CODE NOINLINE icm45600AccRead(accDev_t *acc)
 {
 if(ACC_cntr!=0)
 {   
-    acc->ADCRaw[X] = ACC_A[0]/ACC_cntr;
-    acc->ADCRaw[Y] = ACC_A[1]/ACC_cntr;
-    acc->ADCRaw[Z] = ACC_A[2]/ACC_cntr;
+STATIC_FASTRAM float accm1;
+accm1=1.0f/(float) ACC_cntr;    
+    
+    acc->ADCRaw[X] = ACC_A[0]*accm1;
+    acc->ADCRaw[Y] = ACC_A[1]*accm1;
+    acc->ADCRaw[Z] = ACC_A[2]*accm1;
     ACC_cntr=0;
     ACC_A[0]=0;
     ACC_A[1]=0;
@@ -192,6 +201,8 @@ static void icm45600AccAndGyroInit(gyroDev_t *gyro)
     gyro->sampleRateIntervalUs = 1000000 / 6400;
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
+//    busSetSpeed(dev, BUS_SPEED_FAST);
+
 
     uint8_t intfConfig1Value;
     
@@ -209,33 +220,50 @@ static void icm45600AccAndGyroInit(gyroDev_t *gyro)
     busWrite(dev, ICM45600_RA_ACCEL_CONFIG0, intfConfig1Value);
     delay(15);
 
-//select SYS1  
+//SYS
+
     busWrite(dev, ICM45600_RA_IREG_ADDR_H, ICM45600_IPREG_SYS1);
-
-//gyro LPFBW
-    busWrite(dev, ICM45600_RA_IREG_ADDR_L, ICM45600_RA_GYRO_UI_LPFBW_SEL);
-    delay(15);
-    busRead(dev, ICM45600_RA_IREG_DATA, &intfConfig1Value);
-    intfConfig1Value &= ICM45600_GYRO_UI_LPFBW_SEL_M;
-    intfConfig1Value |= ICM45600_GYRO_UI_LPFBW_SEL_S;
-    busWrite(dev, ICM45600_RA_IREG_ADDR_L, ICM45600_RA_GYRO_UI_LPFBW_SEL);
-    delay(15);
+    delay(10);
+    busWrite(dev, ICM45600_RA_IREG_ADDR_L, ICM45600_RA_GYRO_UI_LPFBW_SEL-1);
+    delay(10);
+    intfConfig1Value=0x84;
     busWrite(dev, ICM45600_RA_IREG_DATA, intfConfig1Value);
-    delay(15);
+    delay(10);
+    busWrite(dev, ICM45600_RA_IREG_DATA, intfConfig1Value);
+    delay(10);
 
-//select SYS2  
     busWrite(dev, ICM45600_RA_IREG_ADDR_H, ICM45600_IPREG_SYS2);
-//ACC LPFBW
-    busWrite(dev, ICM45600_RA_IREG_ADDR_L, ICM45600_RA_ACCEL_UI_LPFBW_SEL);
-    delay(15);
-    busRead(dev, ICM45600_RA_IREG_DATA, &intfConfig1Value);
-    intfConfig1Value &= ICM45600_ACCEL_UI_LPFBW_SEL_M;
-    intfConfig1Value |= ICM45600_ACCEL_UI_LPFBW_SEL_S;
-    busWrite(dev, ICM45600_RA_IREG_ADDR_L, ICM45600_RA_ACCEL_UI_LPFBW_SEL);
-    delay(15);
+    delay(10);
+    busWrite(dev, ICM45600_RA_IREG_ADDR_L, ICM45600_RA_ACCEL_UI_LPFBW_SEL-1);
+    delay(10);
+    intfConfig1Value=0x06;
     busWrite(dev, ICM45600_RA_IREG_DATA, intfConfig1Value);
-    delay(15);
+    delay(10);
+    busWrite(dev, ICM45600_RA_IREG_DATA, intfConfig1Value);
+    delay(10); 
 
+/*
+do{
+
+    busWrite(dev, ICM45600_RA_IREG_ADDR_H, ICM45600_IPREG_SYS1);
+    delay(10);
+    busWrite(dev, ICM45600_RA_IREG_ADDR_L, ICM45600_RA_GYRO_UI_LPFBW_SEL);
+    delay(10);
+    intfConfig1Value=0x84;
+    busRead(dev, ICM45600_RA_IREG_DATA, &intfConfig1Value);
+    delay(1000);
+    busWrite(dev, ICM45600_RA_IREG_ADDR_H, ICM45600_IPREG_SYS2);
+    delay(10);
+    busWrite(dev, ICM45600_RA_IREG_ADDR_L, ICM45600_RA_ACCEL_UI_LPFBW_SEL);
+    delay(10);
+    intfConfig1Value=0x06;
+    busRead(dev, ICM45600_RA_IREG_DATA, &intfConfig1Value);
+    delay(1000);
+
+}while(true);
+*/
+
+ 
 // acc&gyro LN
     busRead(dev, ICM45600_RA_PWR_MGMT0, &intfConfig1Value);
     intfConfig1Value &= ICM45600_PWR_MGMT0_M;
@@ -243,8 +271,10 @@ static void icm45600AccAndGyroInit(gyroDev_t *gyro)
     busWrite(dev, ICM45600_RA_PWR_MGMT0, intfConfig1Value);
     delay(15);
 
-
-
+    GYRO_A[0]=0;
+    GYRO_A[1]=0;
+    GYRO_A[2]=0;
+    GYRO_cntr=0; 
 
     busSetSpeed(dev, BUS_SPEED_FAST);
 }
@@ -280,22 +310,46 @@ static bool icm45600DeviceDetect(busDevice_t * dev)
     return false;
 }
 
-static bool icm45600GyroRead(gyroDev_t *gyro)
+void FAST_CODE NOINLINE icm45600IMURead(gyroDev_t *gyro)
 {
-    uint8_t data[12];
+STATIC_FASTRAM uint8_t data[12];
 
     const bool ack = busReadBuf(gyro->busDev, ICM45600_RA_ACCEL_DATA_X1, data, 12);
     if (!ack) {
-        return false;
+        return;
     }
-    gyro->gyroADCRaw[X] = (float) int16_val_little_endian(data, 3);
-    gyro->gyroADCRaw[Y] = (float) int16_val_little_endian(data, 4);
-    gyro->gyroADCRaw[Z] = (float) int16_val_little_endian(data, 5);
+    GYRO_A[0]+= (float) int16_val_little_endian(data, 3);
+    GYRO_A[1]+= (float) int16_val_little_endian(data, 4);
+    GYRO_A[2]+= (float) int16_val_little_endian(data, 5);
+    GYRO_cntr++;
  
     ACC_A[0]+=(float) int16_val_little_endian(data, 0);
     ACC_A[1]+=(float) int16_val_little_endian(data, 1);
     ACC_A[2]+=(float) int16_val_little_endian(data, 2);
     ACC_cntr++;
+    return;
+}
+
+
+
+static bool FAST_CODE NOINLINE icm45600GyroRead(gyroDev_t *gyro)
+{
+
+    if (GYRO_cntr==0) {
+        return false;
+    }
+STATIC_FASTRAM float gyrom1;
+gyrom1=1.0f/(float) GYRO_cntr;
+
+    gyro->gyroADCRaw[X] = GYRO_A[0]*gyrom1;
+    gyro->gyroADCRaw[Y] = GYRO_A[1]*gyrom1;
+    gyro->gyroADCRaw[Z] = GYRO_A[2]*gyrom1;
+
+    GYRO_A[0]=0;
+    GYRO_A[1]=0;
+    GYRO_A[2]=0;
+    GYRO_cntr=0;    
+ 
     return true;
 }
 

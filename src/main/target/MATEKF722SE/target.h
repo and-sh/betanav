@@ -72,20 +72,20 @@
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 
-#define PITOT_I2C_BUS           BUS_I2C1
+//#define PITOT_I2C_BUS           BUS_I2C1
 
-#define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     BUS_I2C1
+//#define USE_RANGEFINDER
+//#define RANGEFINDER_I2C_BUS     BUS_I2C1
 
 // *************** SPI2 OSD ***********************
-#define USE_SPI_DEVICE_2
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN           PB14
-#define SPI2_MOSI_PIN           PB15
+//#define USE_SPI_DEVICE_2
+//#define SPI2_SCK_PIN            PB13
+//#define SPI2_MISO_PIN           PB14
+//#define SPI2_MOSI_PIN           PB15
 
-#define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI2
-#define MAX7456_CS_PIN          PB12
+//#define USE_MAX7456
+//#define MAX7456_SPI_BUS         BUS_SPI2
+//#define MAX7456_CS_PIN          PB12
 
 // *************** SPI3 SD BLACKBOX*******************
 #define USE_SPI_DEVICE_3
@@ -132,11 +132,11 @@
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
      
-#define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_TX_PIN      PA2
-#define SOFTSERIAL_1_RX_PIN      PA2
+//#define USE_SOFTSERIAL1
+//#define SOFTSERIAL_1_TX_PIN      PA2
+//#define SOFTSERIAL_1_RX_PIN      PA2
 
-#define SERIAL_PORT_COUNT       7
+#define SERIAL_PORT_COUNT       6
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -164,8 +164,8 @@
 #define PINIO2_PIN                  PC9 // 2xCamera switcher
 
 // *************** LEDSTRIP ************************
-#define USE_LED_STRIP
-#define WS2811_PIN                  PA8
+//#define USE_LED_STRIP
+//#define WS2811_PIN                  PA8
 
 #define DEFAULT_FEATURES                (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define CURRENT_METER_SCALE     179

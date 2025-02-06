@@ -112,6 +112,9 @@ PG_DECLARE(gyroConfig_t, gyroConfig);
 
 bool gyroInit(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
+
+void IMUUpdate(void);
+
 void gyroUpdate(void);
 void gyroFilter(void);
 void gyroStartCalibration(void);

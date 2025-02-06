@@ -535,6 +535,14 @@ void FAST_CODE NOINLINE gyroFilter(void)
 
 }
 
+void FAST_CODE NOINLINE IMUUpdate(void)
+{
+     if (!gyro.initialized) {
+        return;
+     }
+    icm45600IMURead(&gyroDev[0]);
+}
+
 void FAST_CODE NOINLINE gyroUpdate(void)
 {
 #ifdef USE_SIMULATOR
@@ -554,17 +562,17 @@ void FAST_CODE NOINLINE gyroUpdate(void)
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
-        float gyroADCf = gyro.gyroADCf[axis];
+        //float gyroADCf = gyro.gyroADCf[axis];
 
         // Set raw gyro for blackbox purposes
-        gyro.gyroRaw[axis] = gyroADCf;
+        gyro.gyroRaw[axis] = gyro.gyroADCf[axis];
 
         /*
          * First gyro LPF is the only filter applied with the full gyro sampling speed
          */
-        gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
+        //gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
 
-        gyro.gyroADCf[axis] = gyroADCf;
+        //gyro.gyroADCf[axis] = gyroADCf;
     }
 }
 
