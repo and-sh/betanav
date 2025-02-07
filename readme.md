@@ -5,11 +5,9 @@ icm45686 IMU
 
 Fixed
 
-iNavFlight#10547
+iNavFlight#10547 = https://github.com/iNavFlight/inav/issues/10660
 
 iNavFlight#10576 = https://github.com/iNavFlight/inav/issues/10669
-
-https://github.com/iNavFlight/inav/issues/10660
 
 https://github.com/iNavFlight/inav/issues/10674
 
