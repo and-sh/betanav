@@ -18,3 +18,7 @@ iNavFlight#10520
 Planed
 
 iNavFlight#10487
+
+RM3100 I2C
+
+temperature dependence of baro
