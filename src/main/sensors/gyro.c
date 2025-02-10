@@ -483,27 +483,30 @@ void FAST_CODE NOINLINE gyroFilter(void)
 
         // Gyro Main LPF
         gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
+ 
+
 
 #ifdef USE_ADAPTIVE_FILTER
         adaptiveFilterPush(axis, gyroADCf);
 #endif
 
-#ifdef USE_DYNAMIC_FILTERS
+#ifdef USE_DYNAMIC_FILTERS      // =dynamic_gyro_notch_enabled
         if (dynamicGyroNotchState.enabled) {
             gyroDataAnalysePush(&gyroAnalyseState, axis, gyroADCf);
             gyroADCf = dynamicGyroNotchFiltersApply(&dynamicGyroNotchState, axis, gyroADCf);
-        }
+        
 
         /**
          * Secondary dynamic notch filter. 
          * In some cases, noise amplitude is high enough not to be filtered by the primary filter.
-         * This happens on the first frequency with the biggest aplitude
+         * This happens on the first frequency with the biggest amplitude
          */
         gyroADCf = secondaryDynamicGyroNotchFiltersApply(&secondaryDynamicGyroNotchState, axis, gyroADCf);
-
+        
+        }
 #endif
 
-#ifdef USE_GYRO_KALMAN
+#ifdef USE_GYRO_KALMAN  // SETTING_SETPOINT_KALMAN_ENABLED_DEFAULT
         if (gyroConfig()->kalmanEnabled) {
             gyroADCf = gyroKalmanUpdate(axis, gyroADCf);
         }

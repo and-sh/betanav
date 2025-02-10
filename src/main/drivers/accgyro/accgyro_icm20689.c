@@ -129,43 +129,32 @@
 
 
 // accumulator for acc
-STATIC_FASTRAM float ACC_A[3];
-STATIC_FASTRAM int16_t ACC_cntr;
 
-STATIC_FASTRAM float GYRO_A[3];
-STATIC_FASTRAM int16_t GYRO_cntr;
+#define n  13
+#define nm1 0.076923077f // 1/n
 
+STATIC_FASTRAM int16_t ACC_V[3][n];
+STATIC_FASTRAM int16_t GYRO_V[3][n];
+
+STATIC_FASTRAM int32_t ACC_A[3],GYRO_A[3];
+
+STATIC_FASTRAM int16_t IMU_ptr;
 
 static void icm45600AccInit(accDev_t *acc)
 {
     acc->acc_1G = ICM45600_ACCEL_1G;
-    //reset accumulator and counter
-    ACC_cntr=0;
-    ACC_A[0]=0;
-    ACC_A[1]=0;
-    ACC_A[2]=0;
-    
+
 }
 
 static bool FAST_CODE NOINLINE icm45600AccRead(accDev_t *acc)
 {
-if(ACC_cntr!=0)
-{   
-STATIC_FASTRAM float accm1;
-accm1=1.0f/(float) ACC_cntr;    
-    
-    acc->ADCRaw[X] = ACC_A[0]*accm1;
-    acc->ADCRaw[Y] = ACC_A[1]*accm1;
-    acc->ADCRaw[Z] = ACC_A[2]*accm1;
-    ACC_cntr=0;
-    ACC_A[0]=0;
-    ACC_A[1]=0;
-    ACC_A[2]=0;
-}else {
-    acc->ADCRaw[X] = 0;
-    acc->ADCRaw[Y] = 0;
-    acc->ADCRaw[Z] = 4096;
-}
+   
+   
+    acc->ADCRaw[X] = (float) ACC_A[0] * nm1;
+    acc->ADCRaw[Y] = (float) ACC_A[1] * nm1;
+    acc->ADCRaw[Z] = (float) ACC_A[2] * nm1;
+
+
     return true;
 }
 
@@ -271,10 +260,27 @@ do{
     busWrite(dev, ICM45600_RA_PWR_MGMT0, intfConfig1Value);
     delay(15);
 
-    GYRO_A[0]=0;
-    GYRO_A[1]=0;
-    GYRO_A[2]=0;
-    GYRO_cntr=0; 
+    //reset accumulator and counter
+    int16_t i;
+    for(i=0;i<n;i++)
+    {
+
+    ACC_V[0][i]=0;
+    ACC_V[1][i]=0;
+    ACC_V[2][i]=0;
+
+    GYRO_V[0][i]=0;
+    GYRO_V[1][i]=0;
+    GYRO_V[2][i]=0;
+
+    }
+    ACC_A[0] = 0;
+    ACC_A[1] = 0;
+    ACC_A[2] = 0;
+    GYRO_A[0] =0;
+    GYRO_A[1] =0;
+    GYRO_A[2] =0;
+    IMU_ptr=0;
 
     busSetSpeed(dev, BUS_SPEED_FAST);
 }
@@ -310,6 +316,10 @@ static bool icm45600DeviceDetect(busDevice_t * dev)
     return false;
 }
 
+
+
+
+
 void FAST_CODE NOINLINE icm45600IMURead(gyroDev_t *gyro)
 {
 STATIC_FASTRAM uint8_t data[12];
@@ -318,15 +328,38 @@ STATIC_FASTRAM uint8_t data[12];
     if (!ack) {
         return;
     }
-    GYRO_A[0]+= (float) int16_val_little_endian(data, 3);
-    GYRO_A[1]+= (float) int16_val_little_endian(data, 4);
-    GYRO_A[2]+= (float) int16_val_little_endian(data, 5);
-    GYRO_cntr++;
+//(rand()%10000-5000);
+
+    GYRO_A[0]-= (int32_t) GYRO_V[0][IMU_ptr];
+    GYRO_V[0][IMU_ptr] = int16_val_little_endian(data, 3);
+    GYRO_A[0]+= (int32_t) GYRO_V[0][IMU_ptr];
+
+    GYRO_A[1]-= (int32_t) GYRO_V[1][IMU_ptr];
+    GYRO_V[1][IMU_ptr] = int16_val_little_endian(data, 4);
+    GYRO_A[1]+= (int32_t) GYRO_V[1][IMU_ptr];
+
+    GYRO_A[2]-= (int32_t) GYRO_V[2][IMU_ptr];
+    GYRO_V[2][IMU_ptr] = int16_val_little_endian(data, 5);
+    GYRO_A[2]+= (int32_t) GYRO_V[2][IMU_ptr];
+
+    ACC_A[0]-= (int32_t) ACC_V[0][IMU_ptr];
+    ACC_V[0][IMU_ptr] = int16_val_little_endian(data, 0);
+    ACC_A[0]+= (int32_t) ACC_V[0][IMU_ptr];
+
+    ACC_A[1]-= (int32_t) ACC_V[1][IMU_ptr];
+    ACC_V[1][IMU_ptr] = int16_val_little_endian(data, 1);
+    ACC_A[1]+= (int32_t) ACC_V[1][IMU_ptr];
+
+    ACC_A[2]-= (int32_t) ACC_V[2][IMU_ptr];
+    ACC_V[2][IMU_ptr] = int16_val_little_endian(data, 2);
+    ACC_A[2]+= (int32_t) ACC_V[2][IMU_ptr];
+
+    IMU_ptr++;
+    if(IMU_ptr>=n)
+    {
+        IMU_ptr=0;
+    }  
  
-    ACC_A[0]+=(float) int16_val_little_endian(data, 0);
-    ACC_A[1]+=(float) int16_val_little_endian(data, 1);
-    ACC_A[2]+=(float) int16_val_little_endian(data, 2);
-    ACC_cntr++;
     return;
 }
 
@@ -335,20 +368,9 @@ STATIC_FASTRAM uint8_t data[12];
 static bool FAST_CODE NOINLINE icm45600GyroRead(gyroDev_t *gyro)
 {
 
-    if (GYRO_cntr==0) {
-        return false;
-    }
-STATIC_FASTRAM float gyrom1;
-gyrom1=1.0f/(float) GYRO_cntr;
-
-    gyro->gyroADCRaw[X] = GYRO_A[0]*gyrom1;
-    gyro->gyroADCRaw[Y] = GYRO_A[1]*gyrom1;
-    gyro->gyroADCRaw[Z] = GYRO_A[2]*gyrom1;
-
-    GYRO_A[0]=0;
-    GYRO_A[1]=0;
-    GYRO_A[2]=0;
-    GYRO_cntr=0;    
+    gyro->gyroADCRaw[X] = (float) GYRO_A[0] * nm1;
+    gyro->gyroADCRaw[Y] = (float) GYRO_A[1] * nm1;
+    gyro->gyroADCRaw[Z] = (float) GYRO_A[2] * nm1;
  
     return true;
 }
