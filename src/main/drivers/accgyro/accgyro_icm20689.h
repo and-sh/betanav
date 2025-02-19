@@ -17,7 +17,7 @@
 
 #pragma once
 
-void icm45600IMURead(gyroDev_t *gyro);
+void icm45600IMURead(gyroDev_t *gyro,int16_t * rawdata);
 
 bool icm20689AccDetect(accDev_t *acc);
 bool icm20689GyroDetect(gyroDev_t *gyro);

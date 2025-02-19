@@ -28,6 +28,9 @@
 #include "common/utils.h"
 #include "common/log.h"
 
+#include "sensors/gyro.h"
+
+
 #include "drivers/system.h"
 #include "drivers/time.h"
 
@@ -130,15 +133,20 @@
 
 // accumulator for acc
 
-#define n  13
-#define nm1 0.076923077f // 1/n
+STATIC_FASTRAM int16_t n,n1;
+STATIC_FASTRAM float nm1;   //1/(n * n1)
 
-STATIC_FASTRAM int16_t ACC_V[3][n];
-STATIC_FASTRAM int16_t GYRO_V[3][n];
 
-STATIC_FASTRAM int32_t ACC_A[3],GYRO_A[3];
+STATIC_FASTRAM int16_t ACC_V[3][35];
+STATIC_FASTRAM int16_t GYRO_V[3][35];
 
-STATIC_FASTRAM int16_t IMU_ptr;
+STATIC_FASTRAM int32_t ACC_V1[3][35];
+STATIC_FASTRAM int32_t GYRO_V1[3][35];
+
+
+STATIC_FASTRAM int32_t ACC_A[3],ACC_A1[3],GYRO_A[3],GYRO_A1[3];
+
+STATIC_FASTRAM int16_t IMU_ptr,IMU_ptr1;
 
 static void icm45600AccInit(accDev_t *acc)
 {
@@ -148,12 +156,10 @@ static void icm45600AccInit(accDev_t *acc)
 
 static bool FAST_CODE NOINLINE icm45600AccRead(accDev_t *acc)
 {
-   
-   
-    acc->ADCRaw[X] = (float) ACC_A[0] * nm1;
-    acc->ADCRaw[Y] = (float) ACC_A[1] * nm1;
-    acc->ADCRaw[Z] = (float) ACC_A[2] * nm1;
-
+    
+    acc->ADCRaw[X] = (float) ACC_A1[0] * nm1;
+    acc->ADCRaw[Y] = (float) ACC_A1[1] * nm1;
+    acc->ADCRaw[Z] = (float) ACC_A1[2] * nm1;
 
     return true;
 }
@@ -260,7 +266,18 @@ do{
     busWrite(dev, ICM45600_RA_PWR_MGMT0, intfConfig1Value);
     delay(15);
 
-    //reset accumulator and counter
+// init n,n1
+    n = gyroConfig()->gyro_anti_aliasing_lpf_hz;
+    if(n <= 0){n=1;}
+    if(n>35){n=35;}
+    
+    n1 = gyroConfig()->gyro_main_lpf_hz;
+    if(n1<=0){n1=1;}
+    if(n1>35){n1=35;}
+
+    nm1= 1.0f/((float) n * (float) n1);
+
+//reset accumulator and counter
     int16_t i;
     for(i=0;i<n;i++)
     {
@@ -281,6 +298,26 @@ do{
     GYRO_A[1] =0;
     GYRO_A[2] =0;
     IMU_ptr=0;
+
+    for(i=0;i<n1;i++)
+    {
+
+    ACC_V1[0][i]=0;
+    ACC_V1[1][i]=0;
+    ACC_V1[2][i]=0;
+
+    GYRO_V1[0][i]=0;
+    GYRO_V1[1][i]=0;
+    GYRO_V1[2][i]=0;
+
+    }
+    ACC_A1[0] = 0;
+    ACC_A1[1] = 0;
+    ACC_A1[2] = 0;
+    GYRO_A1[0] =0;
+    GYRO_A1[1] =0;
+    GYRO_A1[2] =0;
+    IMU_ptr1=0;
 
     busSetSpeed(dev, BUS_SPEED_FAST);
 }
@@ -317,10 +354,7 @@ static bool icm45600DeviceDetect(busDevice_t * dev)
 }
 
 
-
-
-
-void FAST_CODE NOINLINE icm45600IMURead(gyroDev_t *gyro)
+void FAST_CODE NOINLINE icm45600IMURead(gyroDev_t *gyro,int16_t * rawdata)
 {
 STATIC_FASTRAM uint8_t data[12];
 
@@ -333,31 +367,69 @@ STATIC_FASTRAM uint8_t data[12];
     GYRO_A[0]-= (int32_t) GYRO_V[0][IMU_ptr];
     GYRO_V[0][IMU_ptr] = int16_val_little_endian(data, 3);
     GYRO_A[0]+= (int32_t) GYRO_V[0][IMU_ptr];
+    
+    *(rawdata) = GYRO_V[0][IMU_ptr];
+
+        GYRO_A1[0]-= GYRO_V1[0][IMU_ptr1];
+        GYRO_V1[0][IMU_ptr1] = GYRO_A[0];
+        GYRO_A1[0]+= GYRO_V1[0][IMU_ptr1];
 
     GYRO_A[1]-= (int32_t) GYRO_V[1][IMU_ptr];
     GYRO_V[1][IMU_ptr] = int16_val_little_endian(data, 4);
     GYRO_A[1]+= (int32_t) GYRO_V[1][IMU_ptr];
 
+    *(rawdata+1) = GYRO_V[1][IMU_ptr];
+
+
+        GYRO_A1[1]-= GYRO_V1[1][IMU_ptr1];
+        GYRO_V1[1][IMU_ptr1] = GYRO_A[1];
+        GYRO_A1[1]+= GYRO_V1[1][IMU_ptr1];
+
     GYRO_A[2]-= (int32_t) GYRO_V[2][IMU_ptr];
     GYRO_V[2][IMU_ptr] = int16_val_little_endian(data, 5);
     GYRO_A[2]+= (int32_t) GYRO_V[2][IMU_ptr];
+
+    *(rawdata+2) = GYRO_V[2][IMU_ptr];
+
+        GYRO_A1[2]-= GYRO_V1[2][IMU_ptr1];
+        GYRO_V1[2][IMU_ptr1] = GYRO_A[2];
+        GYRO_A1[2]+= GYRO_V1[2][IMU_ptr1];
+
 
     ACC_A[0]-= (int32_t) ACC_V[0][IMU_ptr];
     ACC_V[0][IMU_ptr] = int16_val_little_endian(data, 0);
     ACC_A[0]+= (int32_t) ACC_V[0][IMU_ptr];
 
+        ACC_A1[0]-= ACC_V1[0][IMU_ptr1];
+        ACC_V1[0][IMU_ptr1] = ACC_A[0];
+        ACC_A1[0]+= ACC_V1[0][IMU_ptr1];
+
     ACC_A[1]-= (int32_t) ACC_V[1][IMU_ptr];
     ACC_V[1][IMU_ptr] = int16_val_little_endian(data, 1);
     ACC_A[1]+= (int32_t) ACC_V[1][IMU_ptr];
+
+        ACC_A1[1]-= ACC_V1[1][IMU_ptr1];
+        ACC_V1[1][IMU_ptr1] = ACC_A[1];
+        ACC_A1[1]+= ACC_V1[1][IMU_ptr1];
 
     ACC_A[2]-= (int32_t) ACC_V[2][IMU_ptr];
     ACC_V[2][IMU_ptr] = int16_val_little_endian(data, 2);
     ACC_A[2]+= (int32_t) ACC_V[2][IMU_ptr];
 
+        ACC_A1[2]-= ACC_V1[2][IMU_ptr1];
+        ACC_V1[2][IMU_ptr1] = ACC_A[2];
+        ACC_A1[2]+= ACC_V1[2][IMU_ptr1];
+
     IMU_ptr++;
     if(IMU_ptr>=n)
     {
         IMU_ptr=0;
+    } 
+ 
+    IMU_ptr1++;
+    if(IMU_ptr1>=n1)
+    {
+        IMU_ptr1=0;
     }  
  
     return;
@@ -368,9 +440,9 @@ STATIC_FASTRAM uint8_t data[12];
 static bool FAST_CODE NOINLINE icm45600GyroRead(gyroDev_t *gyro)
 {
 
-    gyro->gyroADCRaw[X] = (float) GYRO_A[0] * nm1;
-    gyro->gyroADCRaw[Y] = (float) GYRO_A[1] * nm1;
-    gyro->gyroADCRaw[Z] = (float) GYRO_A[2] * nm1;
+    gyro->gyroADCRaw[X] = (float) GYRO_A1[0] * nm1;
+    gyro->gyroADCRaw[Y] = (float) GYRO_A1[1] * nm1;
+    gyro->gyroADCRaw[Z] = (float) GYRO_A1[2] * nm1;
  
     return true;
 }
