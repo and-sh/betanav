@@ -3,6 +3,8 @@ Fixing some issues. Currenly work on 8.0.0 release
 Added 
 icm45686 IMU
 
+Reworked half of gyro filters
+
 Fixed
 
 iNavFlight#10547 = https://github.com/iNavFlight/inav/issues/10660
