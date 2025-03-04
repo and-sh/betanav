@@ -3,7 +3,7 @@ Fixing some issues. Currenly work on 8.0.0 release
 Added 
 icm45686 IMU
 
-Reworked half of gyro filters
+left only 2 averaging filters
 
 Fixed
 
