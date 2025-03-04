@@ -26,6 +26,8 @@
 #   define USBD_PRODUCT_STRING  "MatekF722SE"
 #endif
 
+#undef USE_ADAPTIVE_FILTER
+
 #define LED0                    PA14  //Blue   SWCLK
 #define LED1                    PA13  //Green  SWDIO
 

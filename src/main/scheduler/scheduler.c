@@ -29,6 +29,7 @@
 #include "common/maths.h"
 #include "common/time.h"
 #include "common/utils.h"
+#include "sensors/gyro.h"
 
 #include "drivers/time.h"
 
@@ -199,15 +200,33 @@ void schedulerResetTaskStatistics(cfTaskId_e taskId)
     }
 }
 
+STATIC_FASTRAM uint32_t GyroDiv, GyroMod, PrevGyroDiv;
+
+
 void schedulerInit(void)
 {
     queueClear();
     queueAdd(&cfTasks[TASK_SYSTEM]);
+
+    GyroDiv=0;
+    PrevGyroDiv=0;
+
 }
 
 void FAST_CODE NOINLINE scheduler(void)
 {
-    // Cache currentTime
+
+// gyro task
+    GyroDiv = (uint32_t) micros();
+    GyroMod = GyroDiv % 159;
+    GyroDiv = GyroDiv / 159;  // 1/6400
+
+    if((PrevGyroDiv != GyroDiv) || (GyroMod <10))
+    {
+        IMUUpdate();
+        PrevGyroDiv=GyroDiv;
+    }
+// Cache currentTime
     const timeUs_t currentTimeUs = micros();
 
     // The task to be invoked

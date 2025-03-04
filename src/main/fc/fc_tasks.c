@@ -352,8 +352,8 @@ void fcTasksInit(void)
     rescheduleTask(TASK_PID, getLooptime());
     setTaskEnabled(TASK_PID, true);
 
-    rescheduleTask(TASK_GYRO, getGyroLooptime());
-    setTaskEnabled(TASK_GYRO, true);
+//    rescheduleTask(TASK_GYRO, getGyroLooptime());
+//    setTaskEnabled(TASK_GYRO, true);
 
     setTaskEnabled(TASK_AUX, true);
 
