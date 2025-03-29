@@ -3,6 +3,7 @@ Fixing some issues. Currenly work on 8.0.0 release
 Added 
 icm45686 IMU
 
+reworked gyro&acc filters
 left only 2 averaging filters
 
 RM3100 I2C
