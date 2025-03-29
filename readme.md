@@ -5,6 +5,8 @@ icm45686 IMU
 
 left only 2 averaging filters
 
+RM3100 I2C
+
 Fixed
 
 iNavFlight#10547 = https://github.com/iNavFlight/inav/issues/10660
@@ -21,6 +23,5 @@ Planed
 
 iNavFlight#10487
 
-RM3100 I2C
 
 temperature dependence of baro
