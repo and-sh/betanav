@@ -3332,11 +3332,12 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+// COMPASS
     case OSD_HEADING:
         {
             buff[0] = SYM_HEADING;
             if (osdIsHeadingValid()) {
-                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
+            int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
                 if (h < 0) {
                     h += 360;
                 }
@@ -3344,8 +3345,16 @@ static bool osdDrawSingleElement(uint8_t item)
             } else {
                 buff[1] = buff[2] = buff[3] = '-';
             }
-            buff[4] = SYM_DEGREES;
-            buff[5] = '\0';
+// GPS Heading
+            buff[4]=';';
+            int16_t h = DECIDEGREES_TO_DEGREES(gpsSol.groundCourse);
+            if (h < 0) {
+                h += 360;
+            }
+            tfp_sprintf(&buff[5], "%3d", h);
+
+            buff[8] = SYM_DEGREES;
+            buff[9] = '\0';
             break;
         }
 

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+ 
 #include <platform.h>
 #include "drivers/io.h"
 #include "drivers/bus.h"
@@ -266,17 +266,26 @@
     BUSDEV_REGISTER_I2C(busdev_ist8308,     DEVHW_IST8308,      IST8308_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
 #endif
 
+
+//#if defined(USE_MAG_RM3100)
+//    #if defined(RM3100_SPI_BUS)
+//    BUSDEV_REGISTER_SPI(busdev_rm3100,      DEVHW_RM3100,       RM3100_SPI_BUS,     RM3100_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
+//    #endif
+//#endif
+
 #if defined(USE_MAG_RM3100)
-    #if defined(RM3100_SPI_BUS)
-    BUSDEV_REGISTER_SPI(busdev_rm3100,      DEVHW_RM3100,       RM3100_SPI_BUS,     RM3100_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
-    #endif
+    #define RM3100_I2C_BUS MAG_I2C_BUS
+    BUSDEV_REGISTER_I2C(busdev_rm3100, DEVHW_RM3100, RM3100_I2C_BUS, 0x20, NONE, DEVFLAGS_NONE, 0);
+
 #endif
+
+
 
 #if defined(USE_MAG_VCM5883)
     #if !defined(VCM5883_I2C_BUS)
         #define VCM5883_I2C_BUS MAG_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_vcm5883,     DEVHW_VCM5883,      VCM5883_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+    BUSDEV_REGISTER_I2C(busdev_vcm5883, DEVHW_VCM5883, VCM5883_I2C_BUS, 0x0C, NONE, DEVFLAGS_NONE, 0);
 #endif
 
 #if defined(USE_MAG_MLX90393)

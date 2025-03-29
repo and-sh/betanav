@@ -391,6 +391,8 @@ void compassUpdate(timeUs_t currentTimeUs)
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         mag.magADC[axis] = mag.dev.magADCRaw[axis];  // int32_t copy to work with
+//debug
+        DEBUG_SET(DEBUG_ACC, axis+3, mag.dev.magADCRaw[axis]);
     }
 
     if (STATE(CALIBRATE_MAG)) {
@@ -459,6 +461,7 @@ void compassUpdate(timeUs_t currentTimeUs)
     else {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             mag.magADC[axis] = (mag.magADC[axis] - compassConfig()->magZero.raw[axis]) * 1024 / compassConfig()->magGain[axis];
+        
         }
     }
 

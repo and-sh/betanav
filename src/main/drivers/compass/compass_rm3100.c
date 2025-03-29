@@ -29,7 +29,7 @@
 
 #include "platform.h"
 
-#ifdef USE_MAG_RM3100
+//#ifdef USE_MAG_RM3100
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -68,21 +68,19 @@
 
 #define RM3100_REVID           0x22
 
-#define CCX_DEFAULT_MSB        0x00
-#define CCX_DEFAULT_LSB        0xC8
+#define CCX_DEFAULT_MSB        0x02
+#define CCX_DEFAULT_LSB        0x26
 #define CCY_DEFAULT_MSB        CCX_DEFAULT_MSB
 #define CCY_DEFAULT_LSB        CCX_DEFAULT_LSB
 #define CCZ_DEFAULT_MSB        CCX_DEFAULT_MSB
 #define CCZ_DEFAULT_LSB        CCX_DEFAULT_LSB
 #define CMM_DEFAULT            0x71    // Continuous mode
-#define TMRC_DEFAULT           0x94
+#define TMRC_DEFAULT           0x95
 
 
 static bool deviceInit(magDev_t * mag)
 {
     busWrite(mag->busDev, RM3100_REG_TMRC, TMRC_DEFAULT);
-
-    busWrite(mag->busDev, RM3100_REG_CMM, CMM_DEFAULT);
 
     busWrite(mag->busDev, RM3100_REG_CCX1, CCX_DEFAULT_MSB);
     busWrite(mag->busDev, RM3100_REG_CCX0, CCX_DEFAULT_LSB);
@@ -92,6 +90,8 @@ static bool deviceInit(magDev_t * mag)
 
     busWrite(mag->busDev, RM3100_REG_CCZ1, CCZ_DEFAULT_MSB);
     busWrite(mag->busDev, RM3100_REG_CCZ0, CCZ_DEFAULT_LSB);
+
+    busWrite(mag->busDev, RM3100_REG_CMM, CMM_DEFAULT);
 
     return true;
 }
@@ -113,13 +113,13 @@ static bool deviceRead(magDev_t * mag)
     mag->magADCRaw[Z] = 0;
 
     /* Check if new measurement is ready */
-    bool ack = busRead(mag->busDev, RM3100_REG_STATUS, &status);
+//    bool ack = busRead(mag->busDev, RM3100_REG_STATUS, &status);
 
-    if (!ack || (status & 0x80) == 0) {
-        return false;
-    }
+//    if (!ack || (status & 0x80) == 0) {
+//        return false;
+//   }
 
-    ack = busReadBuf(mag->busDev, RM3100_REG_MX, (uint8_t *)&rm_report, sizeof(rm_report));
+    bool ack = busReadBuf(mag->busDev, RM3100_REG_MX, (uint8_t *)&rm_report, sizeof(rm_report));
     if (!ack) {
         return false;
     }
@@ -134,9 +134,12 @@ static bool deviceRead(magDev_t * mag)
     zraw = ((rm_report.z[0] << 24) | (rm_report.z[1] << 16) | (rm_report.z[2]) << 8);
 
     /* Truncate to 16-bit integers and pass along */
-    mag->magADCRaw[X] = (int16_t)(xraw >> 16);
-    mag->magADCRaw[Y] = (int16_t)(yraw >> 16);
-    mag->magADCRaw[Z] = (int16_t)(zraw >> 16);
+//    mag->magADCRaw[X] = (int16_t)(xraw >> 16);
+//    mag->magADCRaw[Y] = (int16_t)(yraw >> 16);
+//    mag->magADCRaw[Z] = (int16_t)(zraw >> 16);
+    mag->magADCRaw[X] = (int16_t)(xraw >> 8);
+    mag->magADCRaw[Y] = (int16_t)(yraw >> 8);
+    mag->magADCRaw[Z] = (int16_t)(zraw >> 8);
 
     return true;
 }
@@ -144,13 +147,15 @@ static bool deviceRead(magDev_t * mag)
 #define DETECTION_MAX_RETRY_COUNT   5
 static bool deviceDetect(magDev_t * mag)
 {
+    
     for (int retryCount = 0; retryCount < DETECTION_MAX_RETRY_COUNT; retryCount++) {
         uint8_t revid = 0;
         bool ack = busRead(mag->busDev, RM3100_REG_REVID, &revid);
 
         if (ack && revid == RM3100_REVID) {
             return true;
-        }
+            }
+        delay(1);    
     }
 
     return false;
@@ -158,7 +163,7 @@ static bool deviceDetect(magDev_t * mag)
 
 bool rm3100MagDetect(magDev_t * mag)
 {
-    busSetSpeed(mag->busDev, BUS_SPEED_STANDARD);
+    //busSetSpeed(mag->busDev, BUS_SPEED_STANDARD);
 
     mag->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_RM3100, mag->magSensorToUse, OWNER_COMPASS);
     if (mag->busDev == NULL) {
@@ -176,4 +181,4 @@ bool rm3100MagDetect(magDev_t * mag)
     return true;
 }
 
-#endif
+//#endif

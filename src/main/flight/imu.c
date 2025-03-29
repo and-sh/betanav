@@ -380,6 +380,10 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             // Ignore magnetic inclination
             vMag.z = 0.0f;
 
+        //debug
+        DEBUG_SET(DEBUG_ACC, 6, vMag.x);
+        DEBUG_SET(DEBUG_ACC, 7, vMag.y);
+
             // We zeroed out vMag.z -  make sure the whole vector didn't go to zero
             if (vectorNormSquared(&vMag) > 0.01f) {
                 // Normalize to unit vector
