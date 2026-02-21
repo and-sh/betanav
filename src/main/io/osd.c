@@ -2119,16 +2119,16 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GPS_HDOP:
         {
-            buff[0] = SYM_HDP_L;
-            buff[1] = SYM_HDP_R;
-            int32_t centiHDOP = 100 * gpsSol.hdop / HDOP_SCALE;
-            uint8_t digits = 2U;
-#ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is not supported, there's no need to check for it and change the values
-            if (isDJICompatibleVideoSystem(osdConfig())) {
-                digits = 3U;
-            }
-#endif
-            osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, digits, false);
+            buff[0] = 'E';
+            buff[1] = 'H';
+            uint16_t EPHcm  = gpsSol.eph;
+ 
+            if (EPHcm > 999)
+            strcpy(buff + 2, "---");
+            else
+            tfp_sprintf(buff + 2, "%3d", EPHcm);
+            strcpy(buff + 5, "CM");
+            buff[7] = '\0';
             break;
         }
 #ifdef USE_ADSB
@@ -2385,6 +2385,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_FLYMODE:
         {
+            
             char *p = "ACRO";
 #ifdef USE_FW_AUTOLAND
             if (FLIGHT_MODE(NAV_FW_AUTOLAND))
@@ -2428,7 +2429,13 @@ static bool osdDrawSingleElement(uint8_t item)
             else if (FLIGHT_MODE(ANGLEHOLD_MODE))
                 p = "ANGH";
 
+            char *p1 = " NO AM";  
+            if (STATE(AIRMODE_ACTIVE))
+                  p1 = "  AM  ";
+            
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
+            displayWrite(osdDisplayPort, elemPosX + 5, elemPosY, p1);
+
             return true;
         }
 

@@ -137,11 +137,11 @@ STATIC_FASTRAM int16_t n,n1;
 STATIC_FASTRAM float nm1;   //1/(n * n1)
 
 
-STATIC_FASTRAM int16_t ACC_V[3][35];
-STATIC_FASTRAM int16_t GYRO_V[3][35];
+STATIC_FASTRAM int16_t ACC_V[3][64];
+STATIC_FASTRAM int16_t GYRO_V[3][64];
 
-STATIC_FASTRAM int32_t ACC_V1[3][35];
-STATIC_FASTRAM int32_t GYRO_V1[3][35];
+STATIC_FASTRAM int32_t ACC_V1[3][64];
+STATIC_FASTRAM int32_t GYRO_V1[3][64];
 
 
 STATIC_FASTRAM int32_t ACC_A[3],ACC_A1[3],GYRO_A[3],GYRO_A1[3];
@@ -269,11 +269,11 @@ do{
 // init n,n1
     n = gyroConfig()->gyro_anti_aliasing_lpf_hz;
     if(n <= 0){n=1;}
-    if(n>35){n=35;}
+    if(n>64){n=64;}
     
     n1 = gyroConfig()->gyro_main_lpf_hz;
     if(n1<=0){n1=1;}
-    if(n1>35){n1=35;}
+    if(n1>64){n1=64;}
 
     nm1= 1.0f/((float) n * (float) n1);
 
